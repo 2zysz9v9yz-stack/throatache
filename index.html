@@ -3,26 +3,53 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>リアル声 発声アプリ（iOS対策版）</title>
+  <title>リアル声 発声アプリ（多機能版）</title>
   <style>
     body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background-color: #f0f4f8; margin: 0; }
     .container { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 90%; max-width: 400px; text-align: center; }
-    textarea { width: 100%; height: 120px; margin-bottom: 15px; padding: 10px; box-sizing: border-box; font-size: 18px; border-radius: 8px; border: 1px solid #ccc; resize: none; }
-    button { width: 100%; padding: 15px; font-size: 20px; font-weight: bold; background-color: #4CAF50; color: white; border: none; border-radius: 8px; cursor: pointer; transition: 0.2s; }
-    button:active { background-color: #3e8e41; transform: scale(0.98); }
-    button:disabled { background-color: #ccc; cursor: not-allowed; }
+    textarea { width: 100%; height: 120px; margin-bottom: 10px; padding: 10px; box-sizing: border-box; font-size: 18px; border-radius: 8px; border: 1px solid #ccc; resize: none; }
+    
+    /* 横並びのレイアウト用 */
+    .row { display: flex; justify-content: space-between; margin-bottom: 15px; gap: 10px; }
+    
+    select { flex: 1; padding: 10px; font-size: 16px; border-radius: 8px; border: 1px solid #ccc; background-color: #fff; cursor: pointer; }
+    .clear-btn { padding: 10px 15px; font-size: 16px; background-color: #e0e0e0; color: #333; border: none; border-radius: 8px; cursor: pointer; transition: 0.1s; }
+    .clear-btn:active { background-color: #ccc; transform: scale(0.95); }
+    
+    .speak-btn { width: 100%; padding: 15px; font-size: 20px; font-weight: bold; background-color: #4CAF50; color: white; border: none; border-radius: 8px; cursor: pointer; transition: 0.2s; }
+    .speak-btn:active { background-color: #3e8e41; transform: scale(0.98); }
+    .speak-btn:disabled { background-color: #ccc; cursor: not-allowed; }
     .status { margin-top: 10px; font-size: 14px; color: #555; height: 20px; }
   </style>
 </head>
 <body>
   <div class="container">
     <textarea id="textInput" placeholder="伝えたいことを入力..."></textarea>
-    <button id="speakButton" onclick="speakText()">🗣️ リアルな声で喋る</button>
+    
+    <div class="row">
+      <select id="voiceSelect">
+        <option value="20">もち子(さん) - 翻訳アプリ風</option>
+        <option value="3">ずんだもん - マスコット</option>
+        <option value="2">四国めたん - 明るい女性</option>
+        <option value="8">春日部つむぎ - 元気な女性</option>
+        <option value="11">白上虎太郎 - 少年の声</option>
+      </select>
+      <button class="clear-btn" onclick="clearText()">🗑️ クリア</button>
+    </div>
+
+    <button id="speakButton" class="speak-btn" onclick="speakText()">🗣️ 喋る</button>
     <div id="statusText" class="status"></div>
   </div>
+  
   <script>
-    // iOS対策: 音声プレイヤーをあらかじめグローバルに作っておく
     const audioPlayer = new Audio();
+
+    // テキストをクリアして入力状態に戻す関数
+    function clearText() {
+      const textArea = document.getElementById('textInput');
+      textArea.value = '';
+      textArea.focus();
+    }
 
     async function speakText() {
       const text = document.getElementById('textInput').value;
@@ -30,14 +57,14 @@
 
       const button = document.getElementById('speakButton');
       const statusText = document.getElementById('statusText');
+      const speakerId = document.getElementById('voiceSelect').value;
 
-      // iOS対策: ボタンを押した直後に再生処理を走らせて音声エンジンのロックを解除
+      // iOS対策のロック解除
       audioPlayer.play().catch(() => {});
 
       button.disabled = true;
       statusText.innerText = "通信中...";
 
-      const speakerId = 11; // 20: もち子(さん)
       const apiUrl = `https://api.tts.quest/v3/voicevox/synthesis?text=${encodeURIComponent(text)}&speaker=${speakerId}`;
 
       try {
