@@ -3,17 +3,28 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>発声アプリ（VOICEVOX ＆ 標準音声）</title>
+  <title>発声アプリ（定型文ボタン付き）</title>
   <style>
     body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background-color: #f0f4f8; margin: 0; }
     .container { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 90%; max-width: 400px; text-align: center; }
-    textarea { width: 100%; height: 120px; margin-bottom: 10px; padding: 10px; box-sizing: border-box; font-size: 18px; border-radius: 8px; border: 1px solid #ccc; resize: none; }
+    
+    /* 定型文ボタンのデザイン */
+    .presets { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+    .preset-btn { padding: 8px 12px; font-size: 14px; background-color: #e3f2fd; color: #0277bd; border: 1px solid #b3e5fc; border-radius: 20px; cursor: pointer; transition: 0.1s; }
+    .preset-btn:active { background-color: #b3e5fc; transform: scale(0.95); }
+
+    textarea { width: 100%; height: 100px; margin-bottom: 15px; padding: 10px; box-sizing: border-box; font-size: 18px; border-radius: 8px; border: 1px solid #ccc; resize: none; }
     
     .row { display: flex; justify-content: space-between; margin-bottom: 15px; gap: 10px; }
     select { flex: 1; padding: 10px; font-size: 14px; border-radius: 8px; border: 1px solid #ccc; background-color: #fff; cursor: pointer; }
     .clear-btn { padding: 10px 15px; font-size: 16px; background-color: #e0e0e0; color: #333; border: none; border-radius: 8px; cursor: pointer; transition: 0.1s; }
     .clear-btn:active { background-color: #ccc; transform: scale(0.95); }
     
+    .slider-container { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; text-align: left; background: #fafafa; padding: 10px; border-radius: 8px; border: 1px solid #eee; }
+    .slider-row { display: flex; align-items: center; justify-content: space-between; font-size: 14px; color: #444; }
+    .slider-row input[type="range"] { flex: 1; margin: 0 10px; }
+    .val-label { width: 30px; text-align: right; font-weight: bold; }
+
     .speak-btn { width: 100%; padding: 15px; font-size: 20px; font-weight: bold; background-color: #4CAF50; color: white; border: none; border-radius: 8px; cursor: pointer; transition: 0.2s; }
     .speak-btn:active { background-color: #3e8e41; transform: scale(0.98); }
     .speak-btn:disabled { background-color: #ccc; cursor: not-allowed; }
@@ -22,6 +33,17 @@
 </head>
 <body>
   <div class="container">
+    
+    <!-- 定型文（プリセット）ボタン -->
+    <div class="presets">
+      <button class="preset-btn" onclick="setPreset('こんにちは！')">こんにちは</button>
+      <button class="preset-btn" onclick="setPreset('ありがとうございます')">ありがとう</button>
+      <button class="preset-btn" onclick="setPreset('はい、そうです')">はい</button>
+      <button class="preset-btn" onclick="setPreset('いいえ、違います')">いいえ</button>
+      <button class="preset-btn" onclick="setPreset('よろしくお願いします')">よろしく</button>
+      <button class="preset-btn" onclick="setPreset('少し待ってください')">少々お待ちを</button>
+    </div>
+
     <textarea id="textInput" placeholder="伝えたいことを入力..."></textarea>
     
     <div class="row">
@@ -35,14 +57,31 @@
       <button class="clear-btn" onclick="clearText()">🗑️ クリア</button>
     </div>
 
+    <div class="slider-container">
+      <div class="slider-row">
+        <span>🏃 スピード</span>
+        <input type="range" id="speedSlider" min="0.5" max="2.0" step="0.1" value="1.0" oninput="document.getElementById('speedVal').innerText = Number(this.value).toFixed(1)">
+        <span id="speedVal" class="val-label">1.0</span>
+      </div>
+      <div class="slider-row">
+        <span>🎵 声の高さ</span>
+        <input type="range" id="pitchSlider" min="0.0" max="2.0" step="0.1" value="1.0" oninput="document.getElementById('pitchVal').innerText = Number(this.value).toFixed(1)">
+        <span id="pitchVal" class="val-label">1.0</span>
+      </div>
+    </div>
+
     <button id="speakButton" class="speak-btn" onclick="speakText()">🗣️ 喋る</button>
     <div id="statusText" class="status"></div>
   </div>
   
-  <!-- iOSブロック対策：HTML内にオーディオプレイヤーを直接埋め込む（画面には表示されません） -->
   <audio id="voicePlayer"></audio>
   
   <script>
+    // 定型文をテキストボックスにセットする関数
+    function setPreset(text) {
+      document.getElementById('textInput').value = text;
+    }
+
     function clearText() {
       const textArea = document.getElementById('textInput');
       textArea.value = '';
@@ -58,7 +97,9 @@
       const speakerId = document.getElementById('voiceSelect').value;
       const audioPlayer = document.getElementById('voicePlayer');
 
-      // フリーズ防止
+      const speedValue = parseFloat(document.getElementById('speedSlider').value);
+      const pitchValue = parseFloat(document.getElementById('pitchSlider').value);
+
       window.speechSynthesis.cancel();
       button.disabled = true;
 
@@ -67,29 +108,24 @@
         statusText.innerText = "再生中...（標準音声）";
         const msg = new SpeechSynthesisUtterance(text);
         msg.lang = 'ja-JP';
-        msg.rate = 1.1; 
+        msg.rate = speedValue;
+        msg.pitch = pitchValue;
 
-        msg.onend = () => {
-          statusText.innerText = "";
-          button.disabled = false;
-        };
-        msg.onerror = () => {
-          statusText.innerText = "標準音声の再生エラー";
-          button.disabled = false;
-        };
+        msg.onend = () => { statusText.innerText = ""; button.disabled = false; };
+        msg.onerror = () => { statusText.innerText = "標準音声エラー"; button.disabled = false; };
 
         window.speechSynthesis.speak(msg);
         return; 
       }
 
       // 2. VOICEVOXの処理
-      // 🌟 超強力なiOSロック解除: ボタンを押した瞬間に「無音の音声データ」を読み込ませて再生権限をゲットする
       audioPlayer.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
       audioPlayer.play().catch(() => {});
 
       statusText.innerText = "通信中...";
       
-      const apiUrl = `https://api.tts.quest/v3/voicevox/synthesis?text=${encodeURIComponent(text)}&speaker=${speakerId}`;
+      const vvPitch = (pitchValue - 1.0) * 0.15;
+      const apiUrl = `https://api.tts.quest/v3/voicevox/synthesis?text=${encodeURIComponent(text)}&speaker=${speakerId}&pitchScale=${vvPitch}`;
 
       try {
         const response = await fetch(apiUrl);
@@ -97,24 +133,25 @@
 
         if (data.success) {
           statusText.innerText = "再生中...";
-          
           audioPlayer.src = data.mp3DownloadUrl;
+          audioPlayer.playbackRate = speedValue;
+
           audioPlayer.onended = () => {
             statusText.innerText = "";
             button.disabled = false;
           };
 
           audioPlayer.play().catch(e => {
-            statusText.innerText = "再生エラー（マナーモード等を確認してください）";
+            statusText.innerText = "再生エラー";
             button.disabled = false;
           });
         } else {
-          statusText.innerText = "サーバー混雑中。時間をおいて再試行してください。";
+          statusText.innerText = "サーバー混雑中";
           button.disabled = false;
         }
       } catch(e) {
         console.error(e);
-        statusText.innerText = "通信エラーが発生しました";
+        statusText.innerText = "通信エラー";
         button.disabled = false;
       }
     }
