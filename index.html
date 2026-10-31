@@ -39,9 +39,10 @@
     <div id="statusText" class="status"></div>
   </div>
   
+  <!-- iOSブロック対策：HTML内にオーディオプレイヤーを直接埋め込む（画面には表示されません） -->
+  <audio id="voicePlayer"></audio>
+  
   <script>
-    const audioPlayer = new Audio();
-
     function clearText() {
       const textArea = document.getElementById('textInput');
       textArea.value = '';
@@ -55,10 +56,10 @@
       const button = document.getElementById('speakButton');
       const statusText = document.getElementById('statusText');
       const speakerId = document.getElementById('voiceSelect').value;
+      const audioPlayer = document.getElementById('voicePlayer');
 
-      // フリーズ防止：前の音声を強制リセット
+      // フリーズ防止
       window.speechSynthesis.cancel();
-
       button.disabled = true;
 
       // 1. デバイス標準音声の処理
@@ -82,7 +83,10 @@
       }
 
       // 2. VOICEVOXの処理
-      audioPlayer.play().catch(() => {}); 
+      // 🌟 超強力なiOSロック解除: ボタンを押した瞬間に「無音の音声データ」を読み込ませて再生権限をゲットする
+      audioPlayer.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
+      audioPlayer.play().catch(() => {});
+
       statusText.innerText = "通信中...";
       
       const apiUrl = `https://api.tts.quest/v3/voicevox/synthesis?text=${encodeURIComponent(text)}&speaker=${speakerId}`;
