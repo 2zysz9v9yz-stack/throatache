@@ -36,4 +36,84 @@
     </div>
 
     <button id="speakButton" class="speak-btn" onclick="speakText()">🗣️ 喋る</button>
-    <div id="statusText" class="status">
+    <div id="statusText" class="status"></div>
+  </div>
+  
+  <script>
+    const audioPlayer = new Audio();
+
+    function clearText() {
+      const textArea = document.getElementById('textInput');
+      textArea.value = '';
+      textArea.focus();
+    }
+
+    async function speakText() {
+      const text = document.getElementById('textInput').value;
+      if (!text) return;
+
+      const button = document.getElementById('speakButton');
+      const statusText = document.getElementById('statusText');
+      const speakerId = document.getElementById('voiceSelect').value;
+
+      // フリーズ防止：前の音声を強制リセット
+      window.speechSynthesis.cancel();
+
+      button.disabled = true;
+
+      // 1. デバイス標準音声の処理
+      if (speakerId === 'default') {
+        statusText.innerText = "再生中...（標準音声）";
+        const msg = new SpeechSynthesisUtterance(text);
+        msg.lang = 'ja-JP';
+        msg.rate = 1.1; 
+
+        msg.onend = () => {
+          statusText.innerText = "";
+          button.disabled = false;
+        };
+        msg.onerror = () => {
+          statusText.innerText = "標準音声の再生エラー";
+          button.disabled = false;
+        };
+
+        window.speechSynthesis.speak(msg);
+        return; 
+      }
+
+      // 2. VOICEVOXの処理
+      audioPlayer.play().catch(() => {}); 
+      statusText.innerText = "通信中...";
+      
+      const apiUrl = `https://api.tts.quest/v3/voicevox/synthesis?text=${encodeURIComponent(text)}&speaker=${speakerId}`;
+
+      try {
+        const response = await fetch(apiUrl);
+        const data = await response.json();
+
+        if (data.success) {
+          statusText.innerText = "再生中...";
+          
+          audioPlayer.src = data.mp3DownloadUrl;
+          audioPlayer.onended = () => {
+            statusText.innerText = "";
+            button.disabled = false;
+          };
+
+          audioPlayer.play().catch(e => {
+            statusText.innerText = "再生エラー（マナーモード等を確認してください）";
+            button.disabled = false;
+          });
+        } else {
+          statusText.innerText = "サーバー混雑中。時間をおいて再試行してください。";
+          button.disabled = false;
+        }
+      } catch(e) {
+        console.error(e);
+        statusText.innerText = "通信エラーが発生しました";
+        button.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>
