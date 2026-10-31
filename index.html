@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>リアル声 発声アプリ（VOICEVOX）</title>
+  <title>リアル声 発声アプリ（iOS対策版）</title>
   <style>
     body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background-color: #f0f4f8; margin: 0; }
     .container { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 90%; max-width: 400px; text-align: center; }
@@ -21,6 +21,9 @@
     <div id="statusText" class="status"></div>
   </div>
   <script>
+    // iOS対策: 音声プレイヤーをあらかじめグローバルに作っておく
+    const audioPlayer = new Audio();
+
     async function speakText() {
       const text = document.getElementById('textInput').value;
       if (!text) return;
@@ -28,13 +31,13 @@
       const button = document.getElementById('speakButton');
       const statusText = document.getElementById('statusText');
 
-      // 連続タップ防止
+      // iOS対策: ボタンを押した直後に再生処理を走らせて音声エンジンのロックを解除
+      audioPlayer.play().catch(() => {});
+
       button.disabled = true;
       statusText.innerText = "通信中...";
 
-      // VOICEVOXの無料Web API（TTS QUEST V3）を利用
-      // speaker=20 は「もち子(さん)」（落ち着いた女性の声で翻訳アプリ風に最適）
-      const speakerId = 20;
+      const speakerId = 20; // 20: もち子(さん)
       const apiUrl = `https://api.tts.quest/v3/voicevox/synthesis?text=${encodeURIComponent(text)}&speaker=${speakerId}`;
 
       try {
@@ -43,14 +46,14 @@
 
         if (data.success) {
           statusText.innerText = "再生中...";
-          const audio = new Audio(data.mp3DownloadUrl);
           
-          audio.onended = () => {
+          audioPlayer.src = data.mp3DownloadUrl;
+          audioPlayer.onended = () => {
             statusText.innerText = "";
             button.disabled = false;
           };
 
-          audio.play().catch(e => {
+          audioPlayer.play().catch(e => {
             statusText.innerText = "再生エラー（マナーモード等を確認してください）";
             button.disabled = false;
           });
